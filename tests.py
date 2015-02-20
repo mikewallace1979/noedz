@@ -39,3 +39,15 @@ class TestNoedz(unittest.TestCase):
             sender_pid,
             test_msg
         )
+
+    def testSendList(self):
+        target_worker = 0
+        sender_pid = -1
+        test_msg = ['foo', 'bar', {'baz': 'quux'}]
+        send(test_msg, sender_pid, self.queues[target_worker])
+        msg = self.debug_queues[target_worker].get(timeout=5)
+        self.assertEquals(msg, '{0} receieved message from {1}: {2}'.format(
+            target_worker,
+            sender_pid,
+            test_msg
+        ))
