@@ -22,7 +22,7 @@ def receive(q):
 def maybe_receive_msg(pid, q, debug=None):
     sender_pid, msg = receive(q)
     if msg:
-        output = '{0} receieved message from {1}: {2}'.format(pid, sender_pid, msg)
+        output = '{0} received message from {1}: {2}'.format(pid, sender_pid, msg)
         print output
         if debug:
             debug.put(output)
