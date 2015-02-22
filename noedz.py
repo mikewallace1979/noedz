@@ -4,7 +4,7 @@ import random
 import time
 
 from collections import deque
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Manager
 
 from Queue import Empty
 
@@ -61,15 +61,27 @@ def worker(pid, queue, debug=None):
     while True:
         maybe_receive_msg(pid, queue, debug)
 
+def init(num_workers=3, debug=False):
+    worker_procs = deque()
+    broker_proc, broker_q = broker_init()
+    debug_queues = debug and {}
+    m = Manager()
+    for pid in range(0, num_workers):
+        inbox = m.Queue()
+        broker_q.put(('register', pid, inbox))
+        if debug:
+            debug_queues[pid] = Queue()
+        worker_proc = Process(
+            target=worker,
+            args=(pid, inbox),
+            kwargs={"debug": debug and debug_queues[pid]}
+        )
+        worker_proc.start()
+        worker_procs.append(worker_proc)
+    return worker_procs, broker_proc, broker_q, debug_queues
+
 if __name__ == '__main__':
     random.seed(time.time())
-    procs = deque()
-    queues = {}
-    for pid in range(0, WORKERS):
-        queues[pid] = Queue()
-    for pid in range(0, WORKERS):
-        p = Process(target=worker, args=(pid, queues))
-        p.start()
-        procs.append(p)
+    procs, broker_proc, broker_q, debug_queues = init(num_workers=3)
     for p in procs:
         p.join()

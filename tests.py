@@ -3,27 +3,16 @@ import unittest
 from collections import deque
 from multiprocessing import Process, Queue, Manager
 
-from noedz import send, worker, broker, broker_init
+from noedz import send, worker, broker, broker_init, init
 
 _WORKERS = 3
 
 class TestNoedz(unittest.TestCase):
     def setUp(self):
-        m = Manager()
-        self.procs = deque()
-        self.broker_proc, self.broker_q = broker_init()
-        self.debug_queues = {}
-        for pid in range(0, _WORKERS):
-            worker_inbox = m.Queue()
-            self.broker_q.put(('register', pid, worker_inbox))
-            self.debug_queues[pid] = Queue()
-            p = Process(
-                target=worker,
-                args=(pid, worker_inbox),
-                kwargs={"debug": self.debug_queues[pid]}
-            )
-            p.start()
-            self.procs.append(p)
+        self.procs, self.broker_proc, self.broker_q, self.debug_queues = init(
+            num_workers=_WORKERS,
+            debug=True
+        )
 
     def tearDown(self):
         for p in self.procs:
