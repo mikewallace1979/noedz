@@ -78,10 +78,11 @@ def init(num_workers=3, debug=False):
         )
         worker_proc.start()
         worker_procs.append(worker_proc)
-    return worker_procs, broker_proc, broker_q, debug_queues
+    enqueue_fun = lambda x: broker_q.put(x)
+    return worker_procs, broker_proc, enqueue_fun, debug_queues
 
 if __name__ == '__main__':
     random.seed(time.time())
-    procs, broker_proc, broker_q, debug_queues = init(num_workers=3)
+    procs, broker_proc, broker_enqueue, debug_queues = init(num_workers=3)
     for p in procs:
         p.join()
