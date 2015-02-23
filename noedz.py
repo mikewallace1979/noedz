@@ -4,11 +4,15 @@ import random
 import time
 
 from collections import deque
+from functools import partial
 from multiprocessing import Process, Queue, Manager
 
 from Queue import Empty
 
 WORKERS = 3
+
+def broker_enqueue(broker_q, msg):
+    broker_q.put(msg)
 
 def broker_init():
     q = Queue()
@@ -87,7 +91,7 @@ def init(num_workers=3, debug=False):
         )
         worker_proc.start()
         worker_procs.append(worker_proc)
-    enqueue_fun = lambda x: broker_q.put(x)
+    enqueue_fun = partial(broker_enqueue, broker_q)
     return worker_procs, broker_proc, enqueue_fun, debug_queues
 
 if __name__ == '__main__':
