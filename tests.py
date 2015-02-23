@@ -25,11 +25,11 @@ class TestNoedz(unittest.TestCase):
         test_msg = 'Message from {0}'.format(sender_pid)
         self.broker_enqueue(('send', sender_pid, target_worker, test_msg))
         msg = self.debug_queues[target_worker].get(timeout=5)
-        assert msg == '{0} received message from {1}: {2}'.format(
+        self.assertEquals(msg, '{0} received message from {1}: {2}'.format(
             target_worker,
             sender_pid,
             test_msg
-        )
+        ))
 
     def testSendList(self):
         target_worker = 0
