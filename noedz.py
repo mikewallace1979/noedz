@@ -64,7 +64,8 @@ def maybe_receive_msg(pid, q, debug=None):
         return None, None
 
 def worker(pid, queue, broker_q, debug=None):
-    print 'Ohai I am worker {0}'.format(pid)
+    if debug:
+        print 'Ohai I am worker {0}'.format(pid)
     while True:
         src_pid, msg = maybe_receive_msg(pid, queue, debug)
         if not msg:
