@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import cmd
 import random
 import time
 
@@ -8,6 +9,11 @@ from functools import partial
 from multiprocessing import Process, Queue, Manager
 
 from Queue import Empty
+
+# Workaround for tab completion on Mac OS X
+import readline
+readline.parse_and_bind('bind ^I rl_complete')
+# End workaround
 
 WORKERS = 3
 
@@ -95,8 +101,38 @@ def init(num_workers=3, debug=False):
     enqueue_fun = partial(broker_enqueue, broker_q)
     return worker_procs, broker_proc, enqueue_fun, debug_queues
 
+class NoedzShell(cmd.Cmd):
+    file = None
+
+    def __init__(self, worker_procs, broker_proc, broker_enqueue, debug_queues):
+        cmd.Cmd.__init__(self, completekey='TAB')
+        self.pid = -1
+        self.broker_proc = broker_proc
+        self.worker_procs = worker_procs
+        self.broker_enqueue = broker_enqueue
+        self.debug_queues = debug_queues
+        self.prompt = 'noedz > '
+
+    def do_exit(self, arg):
+        for p in self.worker_procs:
+            p.terminate()
+        self.broker_proc.terminate()
+        exit(0)
+
+    def do_dump_debug(self, arg):
+        pid = int(arg)
+        try:
+            print self.debug_queues[pid].get(False)
+        except Empty:
+            print 'Nothing in the queue'
+
+    def do_send(self, arg):
+        args = arg.split(' ')
+        dst = int(args[0])
+        msg = ' '.join(args[1:])
+        self.broker_enqueue(('send', self.pid, dst, msg))
+
 if __name__ == '__main__':
     random.seed(time.time())
-    procs, broker_proc, broker_enqueue, debug_queues = init(num_workers=3)
-    for p in procs:
-        p.join()
+    worker_procs, broker_proc, broker_enqueue, debug_queues = init(num_workers=3, debug=True)
+    NoedzShell(worker_procs, broker_proc, broker_enqueue, debug_queues).cmdloop()
