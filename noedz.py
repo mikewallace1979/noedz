@@ -39,8 +39,8 @@ def broker(inbox):
             payload = msg[3]
             _broker_send(queues, src, dst, payload)
 
-def send(msg, src_pid, dst):
-    dst.put((src_pid, msg), False)
+def _worker_send(broker_q, src, dst, msg):
+    broker_q.put(('send', src, dst, msg), False)
 
 def receive(q):
     try:
@@ -52,14 +52,23 @@ def maybe_receive_msg(pid, q, debug=None):
     sender_pid, msg = receive(q)
     if msg:
         output = '{0} received message from {1}: {2}'.format(pid, sender_pid, msg)
-        print output
         if debug:
+            print output
             debug.put(output)
+        return sender_pid, msg
+    else:
+        return None, None
 
-def worker(pid, queue, debug=None):
+def worker(pid, queue, broker_q, debug=None):
     print 'Ohai I am worker {0}'.format(pid)
     while True:
-        maybe_receive_msg(pid, queue, debug)
+        src_pid, msg = maybe_receive_msg(pid, queue, debug)
+        if not msg:
+            continue
+        elif msg[0] == 'send':
+            dst_pid = msg[1]
+            peer_msg = msg[2]
+            _worker_send(broker_q, pid, dst_pid, peer_msg)
 
 def init(num_workers=3, debug=False):
     worker_procs = deque()
@@ -73,7 +82,7 @@ def init(num_workers=3, debug=False):
             debug_queues[pid] = Queue()
         worker_proc = Process(
             target=worker,
-            args=(pid, inbox),
+            args=(pid, inbox, broker_q),
             kwargs={"debug": debug and debug_queues[pid]}
         )
         worker_proc.start()

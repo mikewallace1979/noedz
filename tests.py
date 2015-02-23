@@ -3,7 +3,7 @@ import unittest
 from collections import deque
 from multiprocessing import Process, Queue, Manager
 
-from noedz import send, worker, broker, broker_init, init
+from noedz import worker, broker, broker_init, init
 
 _WORKERS = 3
 
@@ -41,4 +41,18 @@ class TestNoedz(unittest.TestCase):
             target_worker,
             sender_pid,
             test_msg
+        ))
+
+    def testSendPeer(self):
+        sender_pid = -1
+        src_worker = 0
+        dst_worker = 1
+        peer_msg = 'Message from {0}'.format(src_worker)
+        test_msg = ('send', dst_worker, peer_msg)
+        self.broker_enqueue(('send', sender_pid, src_worker, test_msg))
+        msg = self.debug_queues[dst_worker].get(timeout=5)
+        self.assertEqual(msg, '{0} received message from {1}: {2}'.format(
+            dst_worker,
+            src_worker,
+            peer_msg
         ))
