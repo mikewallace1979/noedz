@@ -38,7 +38,7 @@ def broker(inbox):
         try:
             msg = inbox.get(timeout=1)
         except Empty:
-            pass
+            continue
         if msg[0] == 'register':
             pid = msg[1]
             queue = msg[2]
