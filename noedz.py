@@ -63,15 +63,12 @@ def maybe_receive_msg(pid, q, debug=None):
     if msg:
         output = '{0} received message from {1}: {2}'.format(pid, sender_pid, msg)
         if debug:
-            print output
             debug.put(output)
         return sender_pid, msg
     else:
         return None, None
 
 def worker(pid, queue, broker_q, debug=None):
-    if debug:
-        print 'Ohai I am worker {0}'.format(pid)
     while True:
         src_pid, msg = maybe_receive_msg(pid, queue, debug)
         if not msg:
