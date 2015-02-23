@@ -16,6 +16,7 @@ readline.parse_and_bind('bind ^I rl_complete')
 # End workaround
 
 WORKERS = 3
+TIMEOUT = 5
 
 def broker_enqueue(broker_q, msg):
     broker_q.put(msg)
@@ -54,7 +55,7 @@ def _worker_send(broker_q, src, dst, msg):
 
 def receive(q):
     try:
-        return q.get(False)
+        return q.get(timeout=TIMEOUT)
     except Empty:
         return None, None
 
