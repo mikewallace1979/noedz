@@ -126,16 +126,13 @@ class NoedzShell(cmd.Cmd):
         self.broker_proc.terminate()
         exit(0)
 
-    def do_inbox(self, arg):
+    def do_debug_queue(self, arg):
+        if arg:
+            queue = self.debug_queues[int(arg)]
+        else:
+            queue = self.inbox
         try:
-            print self.inbox.get(False)
-        except Empty:
-            print 'Nothing in the queue'
-
-    def do_dump_debug(self, arg):
-        pid = int(arg)
-        try:
-            print self.debug_queues[pid].get(False)
+            print queue.get(False)
         except Empty:
             print 'Nothing in the queue'
 
