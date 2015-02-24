@@ -77,3 +77,16 @@ class TestNoedz(unittest.TestCase):
                 'pong'
             )
         )
+
+    def testPutGetSingleNode(self):
+        sender_pid = -1
+        inbox = self.broker_register(sender_pid)
+        tgt_worker = 0
+        test_key = 'kitteh'
+        test_value = 'ohai'
+        put_msg = ('put', test_key, test_value)
+        self.broker_enqueue(('send', sender_pid, tgt_worker, put_msg))
+        self.assertEquals(inbox.get(timeout=5), (0, 'ok'))
+        get_msg = ('get', test_key)
+        self.broker_enqueue(('send', sender_pid, tgt_worker, get_msg))
+        self.assertEquals(inbox.get(timeout=5), (0, test_value))

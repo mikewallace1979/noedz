@@ -76,6 +76,7 @@ def maybe_receive_msg(pid, q, debug=None):
         return None, None
 
 def worker(pid, queue, broker_q, debug=None):
+    state = {}
     while True:
         src_pid, msg = maybe_receive_msg(pid, queue, debug)
         if not msg:
@@ -86,6 +87,14 @@ def worker(pid, queue, broker_q, debug=None):
             _worker_send(broker_q, pid, dst_pid, peer_msg)
         elif msg[0] == 'ping':
             _worker_send(broker_q, pid, src_pid, 'pong')
+        elif msg[0] == 'put':
+            key = msg[1]
+            value = msg[2]
+            state[key] = value
+            _worker_send(broker_q, pid, src_pid, 'ok')
+        elif msg[0] == 'get':
+            key = msg[1]
+            _worker_send(broker_q, pid, src_pid, state[key])
 
 def init(num_workers=WORKERS, debug=False):
     worker_procs = deque()
