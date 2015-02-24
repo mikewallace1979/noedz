@@ -51,7 +51,7 @@ class TestNoedz(unittest.TestCase):
         test_msg = ('send', dst_worker, peer_msg)
         self.broker_enqueue(('send', sender_pid, src_worker, test_msg))
         msg = self.debug_queues[dst_worker].get(timeout=5)
-        self.assertEqual(msg, '{0} received message from {1}: {2}'.format(
+        self.assertEqual(msg, "{0} received message from {1}: ('{2}',)".format(
             dst_worker,
             src_worker,
             peer_msg
@@ -61,7 +61,7 @@ class TestNoedz(unittest.TestCase):
         sender_pid = -1
         src_worker = 0
         dst_worker = 1
-        test_msg = ('send', dst_worker, ('ping', ))
+        test_msg = ('send', dst_worker, 'ping')
         self.broker_enqueue(('send', sender_pid, src_worker, test_msg))
         self.assertEqual(self.debug_queues[src_worker].get(timeout=5),
             '{0} received message from {1}: {2}'.format(
