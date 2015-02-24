@@ -3,6 +3,8 @@ import unittest
 from collections import deque
 from multiprocessing import Process, Queue, Manager
 
+from Queue import Empty
+
 from noedz import worker, broker, broker_init, init
 
 _WORKERS = 3
@@ -13,6 +15,13 @@ class TestNoedz(unittest.TestCase):
             num_workers=_WORKERS,
             debug=True
         )
+        # Drain debug queues of any messages from init
+        for q in self.debug_queues.values():
+            try:
+                while True:
+                    q.get(timeout=0.1)
+            except Empty:
+                pass
 
     def tearDown(self):
         for p in self.procs:
