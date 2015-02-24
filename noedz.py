@@ -127,8 +127,17 @@ class NoedzShell(cmd.Cmd):
     def do_send(self, arg):
         args = arg.split(' ')
         dst = int(args[0])
-        msg = ' '.join(args[1:])
+        msg = self._parse_args(args[1:])
         self.broker_enqueue(('send', self.pid, dst, msg))
+
+    def _parse_fun(self, arg):
+        try:
+            return int(arg)
+        except ValueError:
+            return arg
+
+    def _parse_args(self, args):
+        return [self._parse_fun(arg) for arg in args]
 
 if __name__ == '__main__':
     random.seed(time.time())
