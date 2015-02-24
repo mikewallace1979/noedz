@@ -80,7 +80,7 @@ def worker(pid, queue, broker_q, debug=None):
             peer_msg = msg[2]
             _worker_send(broker_q, pid, dst_pid, peer_msg)
 
-def init(num_workers=3, debug=False):
+def init(num_workers=WORKERS, debug=False):
     worker_procs = deque()
     broker_proc, broker_q = broker_init()
     debug_queues = debug and {}
