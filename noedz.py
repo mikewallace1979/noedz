@@ -75,7 +75,7 @@ def maybe_receive_msg(pid, q, debug=None):
     else:
         return None, None
 
-def worker(pid, queue, broker_q, debug=None):
+def worker(pid, queue, broker_q, num_workers=WORKERS, debug=None):
     state = {}
     while True:
         src_pid, msg = maybe_receive_msg(pid, queue, debug)
@@ -95,6 +95,15 @@ def worker(pid, queue, broker_q, debug=None):
         elif msg[0] == 'get':
             key = msg[1]
             _worker_send(broker_q, pid, src_pid, state[key])
+        elif msg[0] == 'cput':
+            key = msg[1]
+            value = msg[2]
+            _worker_cput(broker_q, num_workers, pid, key, value)
+            _worker_send(broker_q, pid, src_pid, 'ok')
+
+def _worker_cput(broker_q, num_workers, pid, key, value):
+    for worker_pid in range(0, num_workers):
+        _worker_send(broker_q, pid, worker_pid, ('put', key, value))
 
 def init(num_workers=WORKERS, debug=False):
     worker_procs = deque()
@@ -109,7 +118,7 @@ def init(num_workers=WORKERS, debug=False):
         worker_proc = Process(
             target=worker,
             args=(pid, inbox, broker_q),
-            kwargs={"debug": debug and debug_queues[pid]}
+            kwargs={"num_workers": num_workers, "debug": debug and debug_queues[pid]}
         )
         worker_proc.start()
         worker_procs.append(worker_proc)

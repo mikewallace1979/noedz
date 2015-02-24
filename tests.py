@@ -90,3 +90,17 @@ class TestNoedz(unittest.TestCase):
         get_msg = ('get', test_key)
         self.broker_enqueue(('send', sender_pid, tgt_worker, get_msg))
         self.assertEquals(inbox.get(timeout=5), (0, test_value))
+
+    def testPutGetMultinode(self):
+        sender_pid = -1
+        inbox = self.broker_register(sender_pid)
+        put_worker = 0
+        get_worker = 1
+        test_key = 'kitteh'
+        test_value = 'ohai'
+        put_msg = ('cput', test_key, test_value)
+        self.broker_enqueue(('send', sender_pid, put_worker, put_msg))
+        self.assertEquals(inbox.get(timeout=5), (put_worker, 'ok'))
+        get_msg = ('get', test_key)
+        self.broker_enqueue(('send', sender_pid, get_worker, get_msg))
+        self.assertEquals(inbox.get(timeout=5), (get_worker, test_value))
