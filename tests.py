@@ -9,7 +9,7 @@ _WORKERS = 3
 
 class TestNoedz(unittest.TestCase):
     def setUp(self):
-        self.procs, self.broker_proc, self.broker_enqueue, self.debug_queues = init(
+        self.procs, self.broker_proc, self.broker_enqueue, self.broker_register, self.debug_queues = init(
             num_workers=_WORKERS,
             debug=True
         )

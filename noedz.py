@@ -19,6 +19,11 @@ readline.parse_and_bind('bind ^I rl_complete')
 WORKERS = 3
 TIMEOUT = 5
 
+def broker_register(manager, broker_q, pid):
+    inbox = manager.Queue()
+    broker_q.put(('register', pid, inbox))
+    return inbox
+
 def broker_enqueue(broker_q, msg):
     broker_q.put(msg)
 
@@ -85,11 +90,11 @@ def worker(pid, queue, broker_q, debug=None):
 def init(num_workers=WORKERS, debug=False):
     worker_procs = deque()
     broker_proc, broker_q = broker_init()
-    debug_queues = debug and {}
     m = Manager()
+    register_fun = partial(broker_register, m, broker_q)
+    debug_queues = debug and {}
     for pid in range(0, num_workers):
-        inbox = m.Queue()
-        broker_q.put(('register', pid, inbox))
+        inbox = register_fun(pid)
         if debug:
             debug_queues[pid] = Queue()
         worker_proc = Process(
@@ -100,14 +105,15 @@ def init(num_workers=WORKERS, debug=False):
         worker_proc.start()
         worker_procs.append(worker_proc)
     enqueue_fun = partial(broker_enqueue, broker_q)
-    return worker_procs, broker_proc, enqueue_fun, debug_queues
+    return worker_procs, broker_proc, enqueue_fun, register_fun, debug_queues
 
 class NoedzShell(cmd.Cmd):
     file = None
 
-    def __init__(self, worker_procs, broker_proc, broker_enqueue, debug_queues):
+    def __init__(self, worker_procs, broker_proc, broker_enqueue, broker_register, debug_queues):
         cmd.Cmd.__init__(self, completekey='TAB')
         self.pid = -1
+        self.inbox = broker_register(self.pid)
         self.broker_proc = broker_proc
         self.worker_procs = worker_procs
         self.broker_enqueue = broker_enqueue
@@ -119,6 +125,12 @@ class NoedzShell(cmd.Cmd):
             p.terminate()
         self.broker_proc.terminate()
         exit(0)
+
+    def do_inbox(self, arg):
+        try:
+            print self.inbox.get(False)
+        except Empty:
+            print 'Nothing in the queue'
 
     def do_dump_debug(self, arg):
         pid = int(arg)
@@ -144,5 +156,5 @@ class NoedzShell(cmd.Cmd):
 
 if __name__ == '__main__':
     random.seed(time.time())
-    worker_procs, broker_proc, broker_enqueue, debug_queues = init(num_workers=3, debug=True)
-    NoedzShell(worker_procs, broker_proc, broker_enqueue, debug_queues).cmdloop()
+    worker_procs, broker_proc, broker_enqueue, broker_register, debug_queues = init(num_workers=3, debug=True)
+    NoedzShell(worker_procs, broker_proc, broker_enqueue, broker_register, debug_queues).cmdloop()
