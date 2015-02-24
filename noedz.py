@@ -79,6 +79,8 @@ def worker(pid, queue, broker_q, debug=None):
             dst_pid = msg[1]
             peer_msg = msg[2]
             _worker_send(broker_q, pid, dst_pid, peer_msg)
+        elif msg[0] == 'ping':
+            _worker_send(broker_q, pid, src_pid, 'pong')
 
 def init(num_workers=WORKERS, debug=False):
     worker_procs = deque()

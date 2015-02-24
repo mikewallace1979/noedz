@@ -56,3 +56,24 @@ class TestNoedz(unittest.TestCase):
             src_worker,
             peer_msg
         ))
+
+    def testPing(self):
+        sender_pid = -1
+        src_worker = 0
+        dst_worker = 1
+        test_msg = ('send', dst_worker, ('ping', ))
+        self.broker_enqueue(('send', sender_pid, src_worker, test_msg))
+        self.assertEqual(self.debug_queues[src_worker].get(timeout=5),
+            '{0} received message from {1}: {2}'.format(
+                src_worker,
+                sender_pid,
+                test_msg
+            )
+        )
+        self.assertEqual(self.debug_queues[src_worker].get(timeout=5),
+            '{0} received message from {1}: {2}'.format(
+                src_worker,
+                dst_worker,
+                'pong'
+            )
+        )
