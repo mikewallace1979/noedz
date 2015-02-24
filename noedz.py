@@ -2,6 +2,7 @@
 
 import cmd
 import random
+import shlex
 import time
 
 from collections import deque
@@ -125,7 +126,7 @@ class NoedzShell(cmd.Cmd):
             print 'Nothing in the queue'
 
     def do_send(self, arg):
-        args = arg.split(' ')
+        args = shlex.split(arg)
         dst = int(args[0])
         msg = self._parse_args(args[1:])
         self.broker_enqueue(('send', self.pid, dst, msg))
