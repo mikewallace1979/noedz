@@ -11,7 +11,7 @@ _WORKERS = 3
 
 class TestNoedz(unittest.TestCase):
     def setUp(self):
-        self.procs, self.broker_proc, self.broker_enqueue, self.broker_register, self.debug_queues = init(
+        self.procs, self.broker_proc, self.send, self.broker_register, self.debug_queues = init(
             num_workers=_WORKERS,
             debug=True
         )
@@ -32,7 +32,7 @@ class TestNoedz(unittest.TestCase):
         target_worker = 0
         sender_pid = -1
         test_msg = 'Message from {0}'.format(sender_pid)
-        self.broker_enqueue(('send', sender_pid, target_worker, test_msg))
+        self.send(sender_pid, target_worker, test_msg)
         msg = self.debug_queues[target_worker].get(timeout=5)
         self.assertEquals(msg, '{0} received message from {1}: {2}'.format(
             target_worker,
@@ -44,7 +44,7 @@ class TestNoedz(unittest.TestCase):
         target_worker = 0
         sender_pid = -1
         test_msg = ['foo', 'bar', {'baz': 'quux'}]
-        self.broker_enqueue(('send', sender_pid, target_worker, test_msg))
+        self.send(sender_pid, target_worker, test_msg)
         msg = self.debug_queues[target_worker].get(timeout=5)
         self.assertEquals(msg, '{0} received message from {1}: {2}'.format(
             target_worker,
@@ -58,7 +58,7 @@ class TestNoedz(unittest.TestCase):
         dst_worker = 1
         peer_msg = 'Message from {0}'.format(src_worker)
         test_msg = ('send', dst_worker, peer_msg)
-        self.broker_enqueue(('send', sender_pid, src_worker, test_msg))
+        self.send(sender_pid, src_worker, test_msg)
         msg = self.debug_queues[dst_worker].get(timeout=5)
         self.assertEqual(msg, "{0} received message from {1}: ('{2}',)".format(
             dst_worker,
@@ -71,7 +71,7 @@ class TestNoedz(unittest.TestCase):
         src_worker = 0
         dst_worker = 1
         test_msg = ('send', dst_worker, 'ping')
-        self.broker_enqueue(('send', sender_pid, src_worker, test_msg))
+        self.send(sender_pid, src_worker, test_msg)
         self.assertEqual(self.debug_queues[src_worker].get(timeout=5),
             '{0} received message from {1}: {2}'.format(
                 src_worker,
@@ -94,10 +94,10 @@ class TestNoedz(unittest.TestCase):
         test_key = 'kitteh'
         test_value = 'ohai'
         put_msg = ('put', test_key, test_value)
-        self.broker_enqueue(('send', sender_pid, tgt_worker, put_msg))
+        self.send(sender_pid, tgt_worker, put_msg)
         self.assertEquals(inbox.get(timeout=5), (0, 'ok'))
         get_msg = ('get', test_key)
-        self.broker_enqueue(('send', sender_pid, tgt_worker, get_msg))
+        self.send(sender_pid, tgt_worker, get_msg)
         self.assertEquals(inbox.get(timeout=5), (0, test_value))
 
     def testPutGetMultinode(self):
@@ -108,8 +108,8 @@ class TestNoedz(unittest.TestCase):
         test_key = 'kitteh'
         test_value = 'ohai'
         put_msg = ('cput', test_key, test_value)
-        self.broker_enqueue(('send', sender_pid, put_worker, put_msg))
+        self.send(sender_pid, put_worker, put_msg)
         self.assertEquals(inbox.get(timeout=5), (put_worker, 'ok'))
         get_msg = ('get', test_key)
-        self.broker_enqueue(('send', sender_pid, get_worker, get_msg))
+        self.send(sender_pid, get_worker, get_msg)
         self.assertEquals(inbox.get(timeout=5), (get_worker, test_value))

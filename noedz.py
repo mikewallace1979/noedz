@@ -24,8 +24,8 @@ def broker_register(manager, broker_q, pid):
     broker_q.put(('register', pid, inbox))
     return inbox
 
-def broker_enqueue(broker_q, msg):
-    broker_q.put(msg)
+def broker_send(broker_q, src, dst, msg):
+    broker_q.put(('send', src, dst, msg))
 
 def broker_init():
     q = Queue()
@@ -127,22 +127,22 @@ def init(num_workers=WORKERS, debug=False):
         )
         worker_proc.start()
         worker_procs.append(worker_proc)
-    enqueue_fun = partial(broker_enqueue, broker_q)
+    send_fun = partial(broker_send, broker_q)
     for tgt_pid in worker_pids:
         for pid in worker_pids:
-            enqueue_fun(('send', -1, tgt_pid, ('register', pid)))
-    return worker_procs, broker_proc, enqueue_fun, register_fun, debug_queues
+            send_fun(-1, tgt_pid, ('register', pid))
+    return worker_procs, broker_proc, send_fun, register_fun, debug_queues
 
 class NoedzShell(cmd.Cmd):
     file = None
 
-    def __init__(self, worker_procs, broker_proc, broker_enqueue, broker_register, debug_queues):
+    def __init__(self, worker_procs, broker_proc, send_fun, broker_register, debug_queues):
         cmd.Cmd.__init__(self, completekey='TAB')
         self.pid = -1
         self.inbox = broker_register(self.pid)
         self.broker_proc = broker_proc
         self.worker_procs = worker_procs
-        self.broker_enqueue = broker_enqueue
+        self.send = send_fun
         self.debug_queues = debug_queues
         self.prompt = 'noedz > '
 
@@ -166,7 +166,7 @@ class NoedzShell(cmd.Cmd):
         args = shlex.split(arg)
         dst = int(args[0])
         msg = self._parse_args(args[1:])
-        self.broker_enqueue(('send', self.pid, dst, msg))
+        self.send(self.pid, dst, msg)
 
     def _parse_fun(self, arg):
         try:
@@ -179,5 +179,5 @@ class NoedzShell(cmd.Cmd):
 
 if __name__ == '__main__':
     random.seed(time.time())
-    worker_procs, broker_proc, broker_enqueue, broker_register, debug_queues = init(num_workers=3, debug=True)
-    NoedzShell(worker_procs, broker_proc, broker_enqueue, broker_register, debug_queues).cmdloop()
+    worker_procs, broker_proc, send_fun, broker_register, debug_queues = init(num_workers=3, debug=True)
+    NoedzShell(worker_procs, broker_proc, send_fun, broker_register, debug_queues).cmdloop()
