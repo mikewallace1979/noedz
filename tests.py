@@ -116,7 +116,7 @@ class TestNoedz(unittest.TestCase):
         self.send(sender_pid, tgt_worker, get_msg)
         self.assertEquals(inbox.get(timeout=5), (0, ('error', 'not_found')))
 
-    def testPutGetSingleNode(self):
+    def testPutGet(self):
         sender_pid = -1
         inbox = self.broker_register(sender_pid)
         tgt_worker = 0
@@ -129,7 +129,7 @@ class TestNoedz(unittest.TestCase):
         self.send(sender_pid, tgt_worker, get_msg)
         self.assertEquals(inbox.get(timeout=5), (0, ('ok', test_value)))
 
-    def testCPutGet(self):
+    def testCPutCGet(self):
         sender_pid = -1
         inbox = self.broker_register(sender_pid)
         put_worker = 0
@@ -139,6 +139,6 @@ class TestNoedz(unittest.TestCase):
         put_msg = ('cput', test_key, test_value)
         self.send(sender_pid, put_worker, put_msg)
         self.assertEquals(inbox.get(timeout=5), (put_worker, ('ok', )))
-        get_msg = ('get', test_key)
+        get_msg = ('cget', test_key)
         self.send(sender_pid, get_worker, get_msg)
         self.assertEquals(inbox.get(timeout=5), (get_worker, ('ok', test_value)))

@@ -149,6 +149,13 @@ def worker(pid, queue, broker_q, debug=None):
             value = msg[2]
             _worker_cput(broker_q, peers, pid, key, value)
             _worker_send(broker_q, pid, src_pid, ('ok', ))
+        elif msg[0] == 'cget':
+            key = msg[1]
+            try:
+                resp = ('ok', state[key])
+            except KeyError:
+                resp = ('error', 'not_found')
+            _worker_send(broker_q, pid, src_pid, resp)
         elif msg[0] == 'register':
             peer_pid = msg[1]
             peers.append(peer_pid)
