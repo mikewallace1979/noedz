@@ -96,10 +96,10 @@ class TestNoedz(unittest.TestCase):
         test_value = 'ohai'
         put_msg = ('put', test_key, test_value)
         self.send(sender_pid, tgt_worker, put_msg)
-        self.assertEquals(inbox.get(timeout=5), (0, 'ok'))
+        self.assertEquals(inbox.get(timeout=5), (0, ('ok', )))
         get_msg = ('get', test_key)
         self.send(sender_pid, tgt_worker, get_msg)
-        self.assertEquals(inbox.get(timeout=5), (0, test_value))
+        self.assertEquals(inbox.get(timeout=5), (0, ('ok', test_value)))
 
     def testPutGetMultinode(self):
         sender_pid = -1
@@ -110,10 +110,10 @@ class TestNoedz(unittest.TestCase):
         test_value = 'ohai'
         put_msg = ('cput', test_key, test_value)
         self.send(sender_pid, put_worker, put_msg)
-        self.assertEquals(inbox.get(timeout=5), (put_worker, 'ok'))
+        self.assertEquals(inbox.get(timeout=5), (put_worker, ('ok', )))
         get_msg = ('get', test_key)
         self.send(sender_pid, get_worker, get_msg)
-        self.assertEquals(inbox.get(timeout=5), (get_worker, test_value))
+        self.assertEquals(inbox.get(timeout=5), (get_worker, ('ok', test_value)))
 
     def testGetNotFound(self):
         sender_pid = -1
@@ -122,7 +122,7 @@ class TestNoedz(unittest.TestCase):
         test_key = 'kitteh'
         get_msg = ('get', test_key)
         self.send(sender_pid, tgt_worker, get_msg)
-        self.assertEquals(inbox.get(timeout=5), (0, 'error'))
+        self.assertEquals(inbox.get(timeout=5), (0, ('error', 'not_found')))
 
     def testBrokerMonkeyDelay(self):
         """ Test broker can delay messages by type/destination """
@@ -137,8 +137,8 @@ class TestNoedz(unittest.TestCase):
         self.assertRaises(Empty, inbox.get, timeout=0.05)
         get_msg = ('get', test_key)
         self.send(sender_pid, tgt_worker, get_msg)
-        self.assertEquals(inbox.get(timeout=0.05), (tgt_worker, 'error'))
+        self.assertEquals(inbox.get(timeout=0.05), (tgt_worker, ('error', 'not_found')))
         time.sleep(0.01)
-        self.assertEquals(inbox.get(timeout=5), (tgt_worker, 'ok'))
+        self.assertEquals(inbox.get(timeout=5), (tgt_worker, ('ok', )))
         self.send(sender_pid, tgt_worker, get_msg)
-        self.assertEquals(inbox.get(timeout=5), (tgt_worker, test_value))
+        self.assertEquals(inbox.get(timeout=5), (tgt_worker, ('ok', test_value)))

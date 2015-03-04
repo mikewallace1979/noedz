@@ -136,19 +136,19 @@ def worker(pid, queue, broker_q, debug=None):
             key = msg[1]
             value = msg[2]
             state[key] = value
-            _worker_send(broker_q, pid, src_pid, 'ok')
+            _worker_send(broker_q, pid, src_pid, ('ok', ))
         elif msg[0] == 'get':
             key = msg[1]
             try:
-                value = state[key]
+                resp = ('ok', state[key])
             except KeyError:
-                value = 'error'
-            _worker_send(broker_q, pid, src_pid, value)
+                resp = ('error', 'not_found')
+            _worker_send(broker_q, pid, src_pid, resp)
         elif msg[0] == 'cput':
             key = msg[1]
             value = msg[2]
             _worker_cput(broker_q, peers, pid, key, value)
-            _worker_send(broker_q, pid, src_pid, 'ok')
+            _worker_send(broker_q, pid, src_pid, ('ok', ))
         elif msg[0] == 'register':
             peer_pid = msg[1]
             peers.append(peer_pid)
