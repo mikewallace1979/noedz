@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import bisect
 import cmd
 import random
 import shlex
@@ -18,6 +19,13 @@ readline.parse_and_bind('bind ^I rl_complete')
 
 WORKERS = 3
 TIMEOUT = 5
+
+class BrokerMonkey(object):
+    def __init__(self, broker_q):
+        self.broker_q = broker_q
+
+    def delay(self, tgt, msg_type, delay):
+        self.broker_q.put(('delay', tgt, msg_type, delay))
 
 def broker_register(manager, broker_q, pid):
     inbox = manager.Queue()
@@ -39,9 +47,40 @@ def _broker_register(queues, pid, queue):
 def _broker_send(queues, src, dst, msg):
     queues[dst].put((src, msg), False)
 
+def _broker_set_delay(delays, tgt, msg_type, delay):
+    if delay <= 0:
+        try:
+            del delays[(tgt, msg_type)]
+        except KeyError:
+            pass
+    else:
+        delays[(tgt, msg_type)] = delay
+
+def _broker_maybe_send(queues, delays, delayed, src, dst, payload):
+    msg_type = payload[0]
+    try:
+        delay = delays[(dst, msg_type)]
+        send_time = time.time() + (delay / 1000.0)
+        bisect.insort(delayed, (send_time, src, dst, payload))
+    except KeyError:
+        _broker_send(queues, src, dst, payload)
+
+def _broker_maybe_send_delayed(queues, delayed):
+    now = time.time()
+    for msg in delayed:
+        send_time, src, dst, payload = msg
+        if now >= send_time:
+            _broker_send(queues, src, dst, payload)
+            delayed.pop(0)
+        else:
+            break # Short circuit as the list is sorted by send time on insertion
+
 def broker(inbox):
     queues = {}
+    delays = {}
+    delayed = []
     while True:
+        _broker_maybe_send_delayed(queues, delayed)
         try:
             msg = inbox.get(timeout=1)
         except Empty:
@@ -54,7 +93,12 @@ def broker(inbox):
             src = msg[1]
             dst = msg[2]
             payload = msg[3]
-            _broker_send(queues, src, dst, payload)
+            _broker_maybe_send(queues, delays, delayed, src, dst, payload)
+        if msg[0] == 'delay':
+            tgt = msg[1]
+            msg_type = msg[2]
+            delay = msg[3]
+            _broker_set_delay(delays, tgt, msg_type, delay)
 
 def _worker_send(broker_q, src, dst, msg):
     broker_q.put(('send', src, dst, msg), False)
@@ -135,7 +179,8 @@ def init(num_workers=WORKERS, debug=False):
     for tgt_pid in worker_pids:
         for pid in worker_pids:
             send_fun(-1, tgt_pid, ('register', pid))
-    return worker_procs, broker_proc, send_fun, register_fun, debug_queues
+    broker_monkey = BrokerMonkey(broker_q)
+    return worker_procs, broker_proc, send_fun, register_fun, broker_monkey, debug_queues
 
 class NoedzShell(cmd.Cmd):
     file = None
@@ -183,5 +228,5 @@ class NoedzShell(cmd.Cmd):
 
 if __name__ == '__main__':
     random.seed(time.time())
-    worker_procs, broker_proc, send_fun, broker_register, debug_queues = init(num_workers=3, debug=True)
-    NoedzShell(worker_procs, broker_proc, send_fun, broker_register, debug_queues).cmdloop()
+    worker_procs, broker_proc, send_fun, broker_register, broker_monkey, debug_queues = init(num_workers=3, debug=True)
+    NoedzShell(worker_procs, broker_proc, send_fun, broker_register, broker_monkey, debug_queues).cmdloop()
