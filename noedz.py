@@ -95,7 +95,11 @@ def worker(pid, queue, broker_q, debug=None):
             _worker_send(broker_q, pid, src_pid, 'ok')
         elif msg[0] == 'get':
             key = msg[1]
-            _worker_send(broker_q, pid, src_pid, state[key])
+            try:
+                value = state[key]
+            except KeyError:
+                value = 'error'
+            _worker_send(broker_q, pid, src_pid, value)
         elif msg[0] == 'cput':
             key = msg[1]
             value = msg[2]

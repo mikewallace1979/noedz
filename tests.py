@@ -113,3 +113,12 @@ class TestNoedz(unittest.TestCase):
         get_msg = ('get', test_key)
         self.send(sender_pid, get_worker, get_msg)
         self.assertEquals(inbox.get(timeout=5), (get_worker, test_value))
+
+    def testGetNotFound(self):
+        sender_pid = -1
+        inbox = self.broker_register(sender_pid)
+        tgt_worker = 0
+        test_key = 'kitteh'
+        get_msg = ('get', test_key)
+        self.send(sender_pid, tgt_worker, get_msg)
+        self.assertEquals(inbox.get(timeout=5), (0, 'error'))
