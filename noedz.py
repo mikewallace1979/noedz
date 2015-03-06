@@ -20,6 +20,7 @@ readline.parse_and_bind('bind ^I rl_complete')
 WORKERS = 3
 TIMEOUT = 5
 
+
 class BrokerMonkey(object):
     def __init__(self, broker_q):
         self.broker_q = broker_q
@@ -27,13 +28,16 @@ class BrokerMonkey(object):
     def delay(self, tgt, msg_type, delay):
         self.broker_q.put(('delay', tgt, msg_type, delay))
 
+
 def broker_register(manager, broker_q, pid):
     inbox = manager.Queue()
     broker_q.put(('register', pid, inbox))
     return inbox
 
+
 def broker_send(broker_q, src, dst, msg):
     broker_q.put(('send', src, dst, msg))
+
 
 def broker_init():
     q = Queue()
@@ -41,11 +45,14 @@ def broker_init():
     p.start()
     return p, q
 
+
 def _broker_register(queues, pid, queue):
     queues[pid] = queue
 
+
 def _broker_send(queues, src, dst, msg):
     queues[dst].put((src, msg), False)
+
 
 def _broker_set_delay(delays, tgt, msg_type, delay):
     if delay <= 0:
@@ -56,6 +63,7 @@ def _broker_set_delay(delays, tgt, msg_type, delay):
     else:
         delays[(tgt, msg_type)] = delay
 
+
 def _broker_maybe_send(queues, delays, delayed, src, dst, payload):
     msg_type = payload[0]
     try:
@@ -65,6 +73,7 @@ def _broker_maybe_send(queues, delays, delayed, src, dst, payload):
     except KeyError:
         _broker_send(queues, src, dst, payload)
 
+
 def _broker_maybe_send_delayed(queues, delayed):
     now = time.time()
     for msg in delayed:
@@ -73,7 +82,9 @@ def _broker_maybe_send_delayed(queues, delayed):
             _broker_send(queues, src, dst, payload)
             delayed.pop(0)
         else:
-            break # Short circuit as the list is sorted by send time on insertion
+            # Short circuit as the list is sorted by send time on insertion
+            break
+
 
 def broker(inbox):
     queues = {}
@@ -100,8 +111,10 @@ def broker(inbox):
             delay = msg[3]
             _broker_set_delay(delays, tgt, msg_type, delay)
 
+
 def _worker_send(broker_q, src, dst, msg):
     broker_q.put(('send', src, dst, msg), False)
+
 
 def receive(q):
     try:
@@ -109,15 +122,21 @@ def receive(q):
     except Empty:
         return None, None
 
+
 def maybe_receive_msg(pid, q, debug=None):
     sender_pid, msg = receive(q)
     if msg:
-        output = '{0} received message from {1}: {2}'.format(pid, sender_pid, msg)
+        output = '{0} received message from {1}: {2}'.format(
+            pid,
+            sender_pid,
+            msg
+        )
         if debug:
             debug.put(output)
         return sender_pid, msg
     else:
         return None, None
+
 
 def worker(pid, queue, broker_q, debug=None):
     state = {}
@@ -160,9 +179,11 @@ def worker(pid, queue, broker_q, debug=None):
             peer_pid = msg[1]
             peers.append(peer_pid)
 
+
 def _worker_cput(broker_q, peers, pid, key, value):
     for worker_pid in peers:
         _worker_send(broker_q, pid, worker_pid, ('put', key, value))
+
 
 def init(num_workers=WORKERS, debug=False):
     worker_procs = deque()
@@ -187,12 +208,22 @@ def init(num_workers=WORKERS, debug=False):
         for pid in worker_pids:
             send_fun(-1, tgt_pid, ('register', pid))
     broker_monkey = BrokerMonkey(broker_q)
-    return worker_procs, broker_proc, send_fun, register_fun, broker_monkey, debug_queues
+    return (
+        worker_procs,
+        broker_proc,
+        send_fun,
+        register_fun,
+        broker_monkey,
+        debug_queues
+    )
+
 
 class NoedzShell(cmd.Cmd):
     file = None
 
-    def __init__(self, worker_procs, broker_proc, send_fun, broker_register, debug_queues):
+    def __init__(
+            self, worker_procs, broker_proc, send_fun, broker_register,
+            debug_queues):
         cmd.Cmd.__init__(self, completekey='TAB')
         self.pid = -1
         self.inbox = broker_register(self.pid)
@@ -233,7 +264,16 @@ class NoedzShell(cmd.Cmd):
     def _parse_args(self, args):
         return [self._parse_fun(arg) for arg in args]
 
+
 if __name__ == '__main__':
     random.seed(time.time())
-    worker_procs, broker_proc, send_fun, broker_register, broker_monkey, debug_queues = init(num_workers=3, debug=True)
-    NoedzShell(worker_procs, broker_proc, send_fun, broker_register, broker_monkey, debug_queues).cmdloop()
+    worker_procs, broker_proc, send_fun, broker_register, broker_monkey,\
+        debug_queues = init(num_workers=3, debug=True)
+    NoedzShell(
+        worker_procs,
+        broker_proc,
+        send_fun,
+        broker_register,
+        broker_monkey,
+        debug_queues
+    ).cmdloop()

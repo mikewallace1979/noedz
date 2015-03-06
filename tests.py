@@ -10,12 +10,14 @@ from noedz import worker, broker, broker_init, init
 
 _WORKERS = 3
 
+
 class TestNoedz(unittest.TestCase):
     def setUp(self):
-        self.procs, self.broker_proc, self.send, self.broker_register, self.broker_monkey, self.debug_queues = init(
-            num_workers=_WORKERS,
-            debug=True
-        )
+        self.procs, self.broker_proc, self.send, self.broker_register,\
+            self.broker_monkey, self.debug_queues = init(
+                num_workers=_WORKERS,
+                debug=True
+            )
         # Drain debug queues of any messages from init
         for q in self.debug_queues.values():
             try:
@@ -80,11 +82,17 @@ class TestNoedz(unittest.TestCase):
         self.assertRaises(Empty, inbox.get, timeout=0.05)
         get_msg = ('get', test_key)
         self.send(sender_pid, tgt_worker, get_msg)
-        self.assertEquals(inbox.get(timeout=0.05), (tgt_worker, ('error', 'not_found')))
+        self.assertEquals(
+            inbox.get(timeout=0.05),
+            (tgt_worker, ('error', 'not_found'))
+        )
         time.sleep(0.01)
         self.assertEquals(inbox.get(timeout=5), (tgt_worker, ('ok', )))
         self.send(sender_pid, tgt_worker, get_msg)
-        self.assertEquals(inbox.get(timeout=5), (tgt_worker, ('ok', test_value)))
+        self.assertEquals(
+            inbox.get(timeout=5),
+            (tgt_worker, ('ok', test_value))
+        )
 
     def testPing(self):
         sender_pid = -1
@@ -92,14 +100,16 @@ class TestNoedz(unittest.TestCase):
         dst_worker = 1
         test_msg = ('send', dst_worker, 'ping')
         self.send(sender_pid, src_worker, test_msg)
-        self.assertEqual(self.debug_queues[src_worker].get(timeout=5),
+        self.assertEqual(
+            self.debug_queues[src_worker].get(timeout=5),
             '{0} received message from {1}: {2}'.format(
                 src_worker,
                 sender_pid,
                 test_msg
             )
         )
-        self.assertEqual(self.debug_queues[src_worker].get(timeout=5),
+        self.assertEqual(
+            self.debug_queues[src_worker].get(timeout=5),
             '{0} received message from {1}: {2}'.format(
                 src_worker,
                 dst_worker,
@@ -141,4 +151,7 @@ class TestNoedz(unittest.TestCase):
         self.assertEquals(inbox.get(timeout=5), (put_worker, ('ok', )))
         get_msg = ('cget', test_key)
         self.send(sender_pid, get_worker, get_msg)
-        self.assertEquals(inbox.get(timeout=5), (get_worker, ('ok', test_value)))
+        self.assertEquals(
+            inbox.get(timeout=5),
+            (get_worker, ('ok', test_value))
+        )
